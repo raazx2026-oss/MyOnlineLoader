@@ -1,4 +1,4 @@
-name: Multi-ABI Build Library
+name: Multi-ABI Build Library (No Conflict Version)
 
 on:
   workflow_dispatch:
@@ -9,46 +9,41 @@ permissions:
   contents: write
 
 jobs:
-  build:
+  build_all:
     runs-on: ubuntu-latest
-    # Ek baar mein ek hi architecture build hoga taaki race condition na ho
-    strategy:
-      max-parallel: 1 
-      matrix:
-        abi: [armeabi-v7a, arm64-v8a]
-
     steps:
-    - name: 📥 Checkout
+    - name: 📥 Checkout Code
       uses: actions/checkout@v4
-      with:
-        fetch-depth: 0 # Poori history fetch karega taaki sync mein error na aaye
 
-    - name: ⚙️ Setup NDK
+    - name: ⚙️ Setup Android NDK
       uses: nttld/setup-ndk@v1
       id: setup-ndk
       with:
         ndk-version: r25c
 
-    - name: 🛠️ Build ${{ matrix.abi }}
+    # 1. Pehle 32-bit (v7a) Build karo
+    - name: 🛠️ Build armeabi-v7a
       run: |
-        mkdir -p build_${{ matrix.abi }}
-        cd build_${{ matrix.abi }}
+        mkdir -p build_v7a && cd build_v7a
         cmake -DCMAKE_TOOLCHAIN_FILE=${{ steps.setup-ndk.outputs.ndk-path }}/build/cmake/android.toolchain.cmake \
-              -DANDROID_ABI=${{ matrix.abi }} \
-              -DANDROID_PLATFORM=android-21 ..
+              -DANDROID_ABI=armeabi-v7a -DANDROID_PLATFORM=android-21 ..
         make
+        cp libsepaxyt.so ../libsepaxyt_armeabi-v7a.so
 
-    - name: 🚀 Sync & Save to GitHub
+    # 2. Phir 64-bit (v8a) Build karo
+    - name: 🛠️ Build arm64-v8a
       run: |
-        git config --global user.name "GitHub Bot"
-        git config --global user.email "bot@github.com"
-        
-        # File ko copy karna
-        cp build_${{ matrix.abi }}/libsepaxyt.so ./libsepaxyt_${{ matrix.abi }}.so
-        
-        # Push karne se pehle latest changes pull karna (FIX for your error)
-        git pull origin main --rebase
-        
-        git add libsepaxyt_${{ matrix.abi }}.so
-        git commit -m "✅ Auto-built ${{ matrix.abi }}" || echo "No changes"
+        mkdir -p build_v8a && cd build_v8a
+        cmake -DCMAKE_TOOLCHAIN_FILE=${{ steps.setup-ndk.outputs.ndk-path }}/build/cmake/android.toolchain.cmake \
+              -DANDROID_ABI=arm64-v8a -DANDROID_PLATFORM=android-21 ..
+        make
+        cp libsepaxyt.so ../libsepaxyt_arm64-v8a.so
+
+    # 3. Dono ko ek saath Push karo (No Conflict!)
+    - name: 🚀 Save Both to GitHub
+      run: |
+        git config --global user.name "GitHub Actions Bot"
+        git config --global user.email "actions@github.com"
+        git add libsepaxyt_armeabi-v7a.so libsepaxyt_arm64-v8a.so
+        git commit -m "✅ Auto-built both ABIs (v7a & v8a)" || echo "No changes"
         git push origin main
