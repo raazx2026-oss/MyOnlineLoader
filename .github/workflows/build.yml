@@ -1,4 +1,4 @@
-name: Multi-ABI Build Fixed
+name: VIP Multi-ABI Build Fixed
 
 on:
   workflow_dispatch:
@@ -9,20 +9,13 @@ permissions:
   contents: write
 
 jobs:
-  build:
+  build_and_push:
     runs-on: ubuntu-latest
-    # Ek ke baad ek build hoga taaki koi conflict na ho
-    strategy:
-      max-parallel: 1
-      matrix:
-        abi: [armeabi-v7a, arm64-v8a]
-
     steps:
     - name: 📥 Checkout Code
       uses: actions/checkout@v4
       with:
-        token: ${{ secrets.GITHUB_TOKEN }}
-        fetch-depth: 0 
+        fetch-depth: 0
 
     - name: ⚙️ Setup Android NDK
       uses: nttld/setup-ndk@v1
@@ -30,27 +23,35 @@ jobs:
       with:
         ndk-version: r25c
 
-    - name: 🛠️ Build Library (${{ matrix.abi }})
+    # Step 1: 32-bit (v7a) Compile karna
+    - name: 🛠️ Build armeabi-v7a
       run: |
-        mkdir -p build_${{ matrix.abi }}
-        cd build_${{ matrix.abi }}
+        mkdir -p build_v7a && cd build_v7a
         cmake -DCMAKE_TOOLCHAIN_FILE=${{ steps.setup-ndk.outputs.ndk-path }}/build/cmake/android.toolchain.cmake \
-              -DANDROID_ABI=${{ matrix.abi }} \
-              -DANDROID_PLATFORM=android-21 ..
+              -DANDROID_ABI=armeabi-v7a -DANDROID_PLATFORM=android-21 ..
         make
-        cp libsepaxyt.so ../libsepaxyt_${{ matrix.abi }}.so
+        cp libsepaxyt.so ../libsepaxyt_armeabi-v7a.so
 
-    - name: 🚀 200% Safe Push
+    # Step 2: 64-bit (v8a) Compile karna
+    - name: 🛠️ Build arm64-v8a
+      run: |
+        mkdir -p build_v8a && cd build_v8a
+        cmake -DCMAKE_TOOLCHAIN_FILE=${{ steps.setup-ndk.outputs.ndk-path }}/build/cmake/android.toolchain.cmake \
+              -DANDROID_ABI=arm64-v8a -DANDROID_PLATFORM=android-21 ..
+        make
+        cp libsepaxyt.so ../libsepaxyt_arm64-v8a.so
+
+    # Step 3: Dono ko ek saath upload karna (No Conflict Logic)
+    - name: 🚀 Force Upload Both Libs
       run: |
         git config --global user.name "GitHub Action"
         git config --global user.email "action@github.com"
         
-        # Sabse zaroori: Push se pehle remote changes ko merge karna
-        git fetch origin main
-        git pull origin main --rebase
+        # Files add karna
+        git add libsepaxyt_armeabi-v7a.so libsepaxyt_arm64-v8a.so
         
-        git add libsepaxyt_${{ matrix.abi }}.so
-        git commit -m "✅ Updated lib for ${{ matrix.abi }}" || echo "No changes to commit"
+        # Commit changes
+        git commit -m "✅ VIP Auto-built: v7a and v8a libs" || echo "No changes"
         
-        # Retry logic agar internet ya sync issue ho
-        git push origin main || (git pull origin main --rebase && git push origin main)
+        # Force Push: Ye sabhi conflicts ko khatam karke zabardasti upload kar dega
+        git push origin main --force
