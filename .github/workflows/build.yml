@@ -1,36 +1,55 @@
 name: Auto Build .so Library
 
-# Ye action tab chalega jab aap native-lib.cpp mein koi change karke Save (Commit) karenge
+# 1. Kab chalega ye Action?
 on:
+  workflow_dispatch:  # <-- Isse aapko 'Run workflow' ka Play Button milega
   push:
     paths:
-      - 'native-lib.cpp' 
+      - 'native-lib.cpp'  # <-- Code edit karke save karne par auto-chalega
+      - 'CMakeLists.txt'
 
+# 2. Permissions (Taaki bot file upload kar sake)
+permissions:
+  contents: write
+
+# 3. Build Process
 jobs:
   build:
     runs-on: ubuntu-latest
-    steps:
-    - name: Checkout Code
-      uses: actions/checkout@v3
 
-    - name: Setup Android NDK
+    steps:
+    - name: 📥 Checkout Code
+      uses: actions/checkout@v4
+
+    - name: ⚙️ Setup Android NDK
       uses: nttld/setup-ndk@v1
+      id: setup-ndk
       with:
         ndk-version: r25c
 
-    - name: Compile C++ to .so (armeabi-v7a)
+    - name: 🛠️ Compile C++ to .so (armeabi-v7a)
       run: |
-        mkdir build && cd build
-        cmake -DCMAKE_TOOLCHAIN_FILE=$ANDROID_NDK_HOME/build/cmake/android.toolchain.cmake -DANDROID_ABI=armeabi-v7a -DANDROID_PLATFORM=android-19 ..
+        mkdir -p build
+        cd build
+        # Compiler ko sahi raasta (path) batana
+        cmake -DCMAKE_TOOLCHAIN_FILE=${{ steps.setup-ndk.outputs.ndk-path }}/build/cmake/android.toolchain.cmake \
+              -DANDROID_ABI=armeabi-v7a \
+              -DANDROID_PLATFORM=android-19 \
+              ..
         make
 
-    - name: Save .so file to GitHub
+    - name: 🚀 Save .so file to GitHub Repo
       run: |
-        git config --global user.name "GitHub Action Bot"
-        git config --global user.email "action@github.com"
-        cp build/libsepaxyt.so ../libsepaxyt.so
-        cd ..
-        git add libsepaxyt.so
-        git commit -m "Auto-compiled latest library"
-        git push
+        # Banayi hui file ko bahar nikalna
+        cp build/libsepaxyt.so ./libsepaxyt.so
         
+        # GitHub Bot ka naam aur email set karna
+        git config --global user.name "GitHub Actions Bot"
+        git config --global user.email "actions@github.com"
+        
+        # File ko upload (Push) karna
+        git add libsepaxyt.so
+        
+        # Agar file nayi hai tabhi commit karega (Error se bachane ke liye)
+        git diff --quiet && git diff --staged --quiet || git commit -m "✅ Auto-built latest libsepaxyt.so"
+        git push
