@@ -1,55 +1,46 @@
-name: Auto Build .so Library
+name: Multi-ABI Build Library
 
-# 1. Kab chalega ye Action?
 on:
-  workflow_dispatch:  # <-- Isse aapko 'Run workflow' ka Play Button milega
+  workflow_dispatch:
   push:
-    paths:
-      - 'native-lib.cpp'  # <-- Code edit karke save karne par auto-chalega
-      - 'CMakeLists.txt'
+    paths: ['native-lib.cpp']
 
-# 2. Permissions (Taaki bot file upload kar sake)
 permissions:
   contents: write
 
-# 3. Build Process
 jobs:
   build:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        # Dono architectures build honge
+        abi: [armeabi-v7a, arm64-v8a]
 
     steps:
-    - name: 📥 Checkout Code
+    - name: 📥 Checkout
       uses: actions/checkout@v4
 
-    - name: ⚙️ Setup Android NDK
+    - name: ⚙️ Setup NDK
       uses: nttld/setup-ndk@v1
       id: setup-ndk
       with:
         ndk-version: r25c
 
-    - name: 🛠️ Compile C++ to .so (armeabi-v7a)
+    - name: 🛠️ Build ${{ matrix.abi }}
       run: |
-        mkdir -p build
-        cd build
-        # Compiler ko sahi raasta (path) batana
+        mkdir -p build_${{ matrix.abi }}
+        cd build_${{ matrix.abi }}
         cmake -DCMAKE_TOOLCHAIN_FILE=${{ steps.setup-ndk.outputs.ndk-path }}/build/cmake/android.toolchain.cmake \
-              -DANDROID_ABI=armeabi-v7a \
-              -DANDROID_PLATFORM=android-19 \
-              ..
+              -DANDROID_ABI=${{ matrix.abi }} \
+              -DANDROID_PLATFORM=android-21 ..
         make
 
-    - name: 🚀 Save .so file to GitHub Repo
+    - name: 🚀 Push to Repo
       run: |
-        # Banayi hui file ko bahar nikalna
-        cp build/libsepaxyt.so ./libsepaxyt.so
-        
-        # GitHub Bot ka naam aur email set karna
-        git config --global user.name "GitHub Actions Bot"
-        git config --global user.email "actions@github.com"
-        
-        # File ko upload (Push) karna
-        git add libsepaxyt.so
-        
-        # Agar file nayi hai tabhi commit karega (Error se bachane ke liye)
-        git diff --quiet && git diff --staged --quiet || git commit -m "✅ Auto-built latest libsepaxyt.so"
+        git config --global user.name "GitHub Bot"
+        git config --global user.email "bot@github.com"
+        # Naming format: libsepaxyt_arm64-v8a.so etc.
+        cp build_${{ matrix.abi }}/libsepaxyt.so ./libsepaxyt_${{ matrix.abi }}.so
+        git add libsepaxyt_${{ matrix.abi }}.so
+        git commit -m "Auto-build ${{ matrix.abi }}" || echo "No changes"
         git push
