@@ -11,14 +11,17 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
+    # Ek baar mein ek hi architecture build hoga taaki race condition na ho
     strategy:
+      max-parallel: 1 
       matrix:
-        # Dono architectures build honge
         abi: [armeabi-v7a, arm64-v8a]
 
     steps:
     - name: 📥 Checkout
       uses: actions/checkout@v4
+      with:
+        fetch-depth: 0 # Poori history fetch karega taaki sync mein error na aaye
 
     - name: ⚙️ Setup NDK
       uses: nttld/setup-ndk@v1
@@ -35,12 +38,17 @@ jobs:
               -DANDROID_PLATFORM=android-21 ..
         make
 
-    - name: 🚀 Push to Repo
+    - name: 🚀 Sync & Save to GitHub
       run: |
         git config --global user.name "GitHub Bot"
         git config --global user.email "bot@github.com"
-        # Naming format: libsepaxyt_arm64-v8a.so etc.
+        
+        # File ko copy karna
         cp build_${{ matrix.abi }}/libsepaxyt.so ./libsepaxyt_${{ matrix.abi }}.so
+        
+        # Push karne se pehle latest changes pull karna (FIX for your error)
+        git pull origin main --rebase
+        
         git add libsepaxyt_${{ matrix.abi }}.so
-        git commit -m "Auto-build ${{ matrix.abi }}" || echo "No changes"
-        git push
+        git commit -m "✅ Auto-built ${{ matrix.abi }}" || echo "No changes"
+        git push origin main
