@@ -1,0 +1,36 @@
+name: Auto Build .so Library
+
+# Ye action tab chalega jab aap native-lib.cpp mein koi change karke Save (Commit) karenge
+on:
+  push:
+    paths:
+      - 'native-lib.cpp' 
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout Code
+      uses: actions/checkout@v3
+
+    - name: Setup Android NDK
+      uses: nttld/setup-ndk@v1
+      with:
+        ndk-version: r25c
+
+    - name: Compile C++ to .so (armeabi-v7a)
+      run: |
+        mkdir build && cd build
+        cmake -DCMAKE_TOOLCHAIN_FILE=$ANDROID_NDK_HOME/build/cmake/android.toolchain.cmake -DANDROID_ABI=armeabi-v7a -DANDROID_PLATFORM=android-19 ..
+        make
+
+    - name: Save .so file to GitHub
+      run: |
+        git config --global user.name "GitHub Action Bot"
+        git config --global user.email "action@github.com"
+        cp build/libsepaxyt.so ../libsepaxyt.so
+        cd ..
+        git add libsepaxyt.so
+        git commit -m "Auto-compiled latest library"
+        git push
+        
