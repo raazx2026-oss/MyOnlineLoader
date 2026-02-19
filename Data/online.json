@@ -1,0 +1,23 @@
+{
+  "version": 2,
+  "resources": [
+    "https://raw.githubusercontent.com/YOUR_USERNAME/YOUR_REPO/main/images/character.png",
+    "https://raw.githubusercontent.com/YOUR_USERNAME/YOUR_REPO/main/images/background.png"
+  ],
+  "nativeLibs": [],
+  "characterImage": "character.png",
+  "backgroundImage": "background.png",
+  "splashImage": "splash.png",
+  "namazSteps": [
+    "Niyyah (Intention)",
+    "Takbir: Allahu Akbar",
+    "Recite Surah Al-Fatiha",
+    "Ruku (Bowing)",
+    "Stand up from Ruku",
+    "Sujud (Prostration)",
+    "Sit between Sujud",
+    "Second Sujud",
+    "Stand for next Rak'ah",
+    "Tashahhud and Salam"
+  ]
+}
