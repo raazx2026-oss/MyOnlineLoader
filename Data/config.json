@@ -9,7 +9,7 @@
   "scratch_min": 10,
   "scratch_max": 50,
   "redeem_items": [
-    { "id": 1, "title": "Google Play 50₹", "cost": 5000, "code": "GP50-ABCD-1234-XYZ" },
+    { "id": 1, "title": "Google Play 50₹", "cost": 500, "code": "GP50-ABCD-1234-XYZ" },
     { "id": 2, "title": "Google Play 150₹", "cost": 12000, "code": "GP150-QWER-5678-UIO" }
   ]
 }
