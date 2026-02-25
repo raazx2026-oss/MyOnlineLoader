@@ -3,7 +3,7 @@
   "maintenance_message": "Server upgrade chal raha hai. Thodi der mein wapas aayen!",
   "latest_app_version": 1,
   "update_link": "https://yourwebsite.com/app.apk",
-  "scratch_enabled": true,
+  "scratch_enabled": false,
   "scratch_off_message": "Aaj ke liye scratch band hai. Kal try karein!",
   "daily_scratch_limit": 15,
   "scratch_min": 10,
